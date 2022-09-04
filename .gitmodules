@@ -1,0 +1,3 @@
+[submodule "client/src/some-utils"]
+	path = client/src/some-utils
+	url = https://github.com/jniac/some-utils.git

@@ -1,0 +1,27 @@
+
+.Calendar {
+  overflow: hidden;
+}
+
+.Calendar .Month.wrapper {
+  flex: 0 0 48px;
+  background-color: #b1cadd;
+  z-index: 1;
+}
+
+.Calendar .Day.wrapper {
+  flex: 1;
+  background-color: #ddb1d8;
+}
+
+.Calendar .Day.card {
+  position: absolute;
+  width: 100%;
+  height: 200px;
+}
+
+.Calendar .Day.card {
+  background-color: #fff6;
+  border: solid 2px #fff;
+  border-radius: 16px;
+}
