@@ -92,6 +92,8 @@ const frameUpdate = ({ props, state, updateState }: Bundle) => {
     position,
     viewHeight,
   } = state
+
+  // Step #1: Update the children's positions, and check for new start and end indexes.
   let cumulHeight = 0
   let startIndex = 0, endIndex = children.length, newStartPositionOffset = startPositionOffset
   for (let index = 0, max = children.length; index < max; index++) {
@@ -109,6 +111,8 @@ const frameUpdate = ({ props, state, updateState }: Bundle) => {
     // Update CSS.
     child.style.top = `${start}px`
   }
+
+  // Step #2: Reduce the list if necessary.
   const shouldReduce = startIndex !== 0 || endIndex !== children.length
   if (shouldReduce) {
     const newNodes = nodes.slice(startIndex, endIndex)
@@ -117,6 +121,9 @@ const frameUpdate = ({ props, state, updateState }: Bundle) => {
       startPositionOffset: newStartPositionOffset,
     })
   }
+
+  // Step #3: Add new children if necessary.
+  // TODO: Implement.
 }
 
 export const VirtualScrollList = (props: Props) => {
