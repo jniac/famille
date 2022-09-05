@@ -110,16 +110,23 @@ export const VirtualScrollList = (props: Props) => {
     const div = ref.current!
     state.children = [...div.children] as HTMLElement[]
     state.viewHeight = div.offsetHeight
-    if (state.status === 'init') {
-      init(bundle)
-    }
-    if (state.status === 'frame-update') {
-      yield state.position.withValue(() => {
-        frameUpdate(bundle)
-      })
-      yield handleVerticalScroll(div, delta => {
-        state.position.increment(delta)
-      })
+
+    switch (state.status) {
+
+      case 'init': {
+        init(bundle)
+        break
+      }
+
+      case 'frame-update': {
+        yield state.position.withValue(() => {
+          frameUpdate(bundle)
+        })
+        yield handleVerticalScroll(div, delta => {
+          state.position.increment(delta)
+        })
+        break
+      }
     }
   }, 'always-recalculate')
   return (
