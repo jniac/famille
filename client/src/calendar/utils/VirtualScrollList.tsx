@@ -1,19 +1,24 @@
-import { ReactElement, useMemo, useRef } from 'react'
+import { ReactElement, useEffect, useMemo, useRef } from 'react'
 import { useComplexEffects, useForceUpdate } from 'some-utils/npm/react'
 import { ObservableNumber } from 'some-utils/observables'
 import { handleVerticalScroll } from './handleVerticalScroll'
 import './VirtualScrollList.css'
 
-type Props = {
-  renderItem: (index: number) => ReactElement
-  startInnerMargin?: number
-  startOuterMargin?: number
-  endInnerMargin?: number
-  endOuterMargin?: number
+const defaultProps = {
+  startInnerMargin: 200,
+  startOuterMargin: 400,
+  endInnerMargin: 200,
+  endOuterMargin: 400,
 }
 
+type Props = {
+  renderItem: (index: number) => ReactElement
+} & Partial<typeof defaultProps>
+
+const propsWithDefault = (props: Props) => ({ ...defaultProps, ...props})
+
 type State = {
-  status: 'init' | 'frame-update'
+  status: 'init' | 'init-done' | 'frame-update'
   startPositionOffset: number
   startIndexOffset: number
   viewHeight: number
@@ -30,10 +35,10 @@ type Bundle = {
 
 const init = ({ props, state, updateState }: Bundle) => {
   const {
-    startInnerMargin = 200,
-    endInnerMargin = 200,
+    startInnerMargin,
+    endInnerMargin,
     renderItem,
-  } = props
+  } = propsWithDefault(props)
   const {
     startIndexOffset,
     viewHeight,
@@ -69,26 +74,54 @@ const init = ({ props, state, updateState }: Bundle) => {
     else {
       updateState({
         startPositionOffset: startHeight,
-        status: 'frame-update',
+        status: 'init-done',
       })
     }
   }
 }
 
-const frameUpdate = ({ props, state, updateState: update }: Bundle) => {
+const frameUpdate = ({ props, state, updateState }: Bundle) => {
+  const {
+    startOuterMargin,
+    endOuterMargin,
+  } = propsWithDefault(props)
   const {
     children,
+    nodes,
     startPositionOffset,
     position,
+    viewHeight,
   } = state
-  let currentPosition = position.value - startPositionOffset
-  for (const child of children) {
-    child.style.top = `${currentPosition}px`
-    currentPosition += child.offsetHeight
+  let cumulHeight = 0
+  let startIndex = 0, endIndex = children.length, newStartPositionOffset = startPositionOffset
+  for (let index = 0, max = children.length; index < max; index++) {
+    const child = children[index]
+    const start = position.value - startPositionOffset + cumulHeight
+    const end = start + child.offsetHeight
+    cumulHeight += child.offsetHeight
+    if (end < -startOuterMargin) {
+      startIndex = index + 1
+      newStartPositionOffset = startPositionOffset - cumulHeight
+    }
+    if (endIndex === children.length && start > viewHeight + endOuterMargin) {
+      endIndex = index
+    }
+    // Update CSS.
+    child.style.top = `${start}px`
+  }
+  const shouldReduce = startIndex !== 0 || endIndex !== children.length
+  if (shouldReduce) {
+    const newNodes = nodes.slice(startIndex, endIndex)
+    updateState({ 
+      nodes: newNodes, 
+      startPositionOffset: newStartPositionOffset,
+    })
   }
 }
 
 export const VirtualScrollList = (props: Props) => {
+
+  // Ref & Bundle.
   const ref = useRef<HTMLDivElement>(null)
   const state = useMemo<State>(() => ({
     status: 'init',
@@ -106,29 +139,39 @@ export const VirtualScrollList = (props: Props) => {
   }
   const bundle: Bundle = { props, state, updateState }
 
-  useComplexEffects(function* () {
+  // Core mechanism #1 (update on re-render).
+  useEffect(() => {
     const div = ref.current!
     state.children = [...div.children] as HTMLElement[]
     state.viewHeight = div.offsetHeight
 
     switch (state.status) {
-
       case 'init': {
         init(bundle)
         break
       }
-
-      case 'frame-update': {
-        yield state.position.withValue(() => {
-          frameUpdate(bundle)
-        })
-        yield handleVerticalScroll(div, delta => {
-          state.position.increment(delta)
-        })
+      case 'init-done': {
+        frameUpdate(bundle)
+        updateState({ status: 'frame-update' })
         break
       }
     }
-  }, 'always-recalculate')
+  })
+
+  // Core mechanism #2 (user event subscription).
+  useComplexEffects(function* () {
+    const div = ref.current!
+    yield state.position.onChange(() => {
+      if (state.status === 'frame-update') {
+        frameUpdate(bundle)
+      }
+    })
+    yield handleVerticalScroll(div, delta => {
+      state.position.increment(delta)
+    })
+  }, [])
+
+  // Render.
   return (
     <div ref={ref} className='VirtualScrollList'>
       {state.nodes}
