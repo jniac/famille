@@ -13,13 +13,14 @@ const Item = ({ index = 0 }) => {
       console.log(`item(${index}) unmount!!!`)
     }
   }, [])
+  const height = (index % 5 === 0 ? 1 : Math.abs(index) + 1) * 2
   return (
     <div
       className='flex column center'
       style={{
         backgroundColor: index % 2 ? '#fc0' : 'white',
         padding: '4px',
-        height: `${(Math.abs(index) + 1) * 2}em`,
+        height: `${height}em`,
       }}>
       item ({index})
     </div>

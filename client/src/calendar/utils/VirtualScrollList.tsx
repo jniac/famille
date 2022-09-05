@@ -18,7 +18,7 @@ type Props = {
 const propsWithDefault = (props: Props) => ({ ...defaultProps, ...props})
 
 type State = {
-  status: 'init' | 'init-done' | 'frame-update'
+  status: 'init' | 'init-done' | 'position-update' | 'prepend'
   startPositionOffset: number
   startIndexOffset: number
   viewHeight: number
@@ -32,6 +32,16 @@ type Bundle = {
   state: State
   updateState: (partialState: Partial<State>) => void
 }
+
+const createState = (): State => ({
+  status: 'init',
+  startPositionOffset: 0,
+  startIndexOffset: 0,
+  viewHeight: 0,
+  children: [],
+  nodes: [],
+  position: new ObservableNumber(0),
+})
 
 const init = ({ props, state, updateState }: Bundle) => {
   const {
@@ -80,30 +90,54 @@ const init = ({ props, state, updateState }: Bundle) => {
   }
 }
 
-const frameUpdate = ({ props, state, updateState }: Bundle) => {
+const afterInit = (bundle: Bundle) => {
+  positionUpdate(bundle)
+  const { updateState } = bundle
+  updateState({ status: 'position-update' })
+}
+
+const positionUpdate = ({ props, state, updateState }: Bundle) => {
   const {
+    renderItem,
+    startInnerMargin,
     startOuterMargin,
+    endInnerMargin,
     endOuterMargin,
   } = propsWithDefault(props)
   const {
     children,
     nodes,
+    startIndexOffset,
     startPositionOffset,
     position,
     viewHeight,
   } = state
 
+  // Step #0: Compute metrics (height, offset).
+  const metrics = (() => {
+    let offset = 0
+    return children.map((child, index) => {
+      const height = child.offsetHeight
+      const start = position.value - startPositionOffset + offset
+      const end = start + height
+      offset += height
+      return {
+        height,
+        offset,
+        start,
+        end,
+      }
+    })
+  })()
+
   // Step #1: Update the children's positions, and check for new start and end indexes.
-  let cumulHeight = 0
   let startIndex = 0, endIndex = children.length, newStartPositionOffset = startPositionOffset
   for (let index = 0, max = children.length; index < max; index++) {
     const child = children[index]
-    const start = position.value - startPositionOffset + cumulHeight
-    const end = start + child.offsetHeight
-    cumulHeight += child.offsetHeight
+    const { start, end, offset } = metrics[index]
     if (end < -startOuterMargin) {
       startIndex = index + 1
-      newStartPositionOffset = startPositionOffset - cumulHeight
+      newStartPositionOffset = startPositionOffset - offset
     }
     if (endIndex === children.length && start > viewHeight + endOuterMargin) {
       endIndex = index
@@ -118,27 +152,54 @@ const frameUpdate = ({ props, state, updateState }: Bundle) => {
     const newNodes = nodes.slice(startIndex, endIndex)
     updateState({ 
       nodes: newNodes, 
+      startIndexOffset: startIndexOffset + startIndex,
       startPositionOffset: newStartPositionOffset,
     })
+    return // Stop here.
   }
 
-  // Step #3: Add new children if necessary.
-  // TODO: Implement.
+  // Step #3: If no reduce, add new children if necessary.
+  const shouldPrepend = metrics[0].start > -startInnerMargin
+  if (shouldPrepend) {
+    const index = startIndexOffset - 1
+    const newNodes = [renderItem(index), ...nodes]
+    updateState({
+      startIndexOffset: index,
+      nodes: newNodes,
+      status: 'prepend',
+    })
+    return // Stop here.
+  }
+  const shouldAppend = metrics[metrics.length - 1].end < viewHeight + endInnerMargin
+  if (shouldAppend) {
+    const index = startIndexOffset + nodes.length
+    const newNodes = [...nodes, renderItem(index)]
+    updateState({ nodes: newNodes })
+    return // Stop here.
+  }
+}
+
+/**
+ * "prepend" is a litte more complicated than "append", because after prepend we
+ * have to update the `startPositionOffset` property.
+ */
+const afterPrepend = ({ state, updateState }: Bundle) => {
+  const {
+    startPositionOffset,
+    children,
+  } = state
+  const height = children[0].offsetHeight
+  updateState({
+    startPositionOffset: startPositionOffset + height,
+    status: 'position-update',
+  })
 }
 
 export const VirtualScrollList = (props: Props) => {
 
-  // Ref & Bundle.
+  // Ref & bundle.
   const ref = useRef<HTMLDivElement>(null)
-  const state = useMemo<State>(() => ({
-    status: 'init',
-    startPositionOffset: 0,
-    startIndexOffset: 0,
-    viewHeight: 0,
-    children: [],
-    nodes: [],
-    position: new ObservableNumber(0),
-  }), [])
+  const state = useMemo<State>(createState, [])
   const forceUpdate = useForceUpdate({ waitNextFrame: false })
   const updateState = (partialState: Partial<State>) => {
     Object.assign(state, partialState)
@@ -158,19 +219,22 @@ export const VirtualScrollList = (props: Props) => {
         break
       }
       case 'init-done': {
-        frameUpdate(bundle)
-        updateState({ status: 'frame-update' })
+        afterInit(bundle)
+        break
+      }
+      case 'prepend': {
+        afterPrepend(bundle)
         break
       }
     }
   })
 
-  // Core mechanism #2 (user event subscription).
+  // Core mechanism #2 (user event subscription, no intermediate updates).
   useComplexEffects(function* () {
     const div = ref.current!
     yield state.position.onChange(() => {
-      if (state.status === 'frame-update') {
-        frameUpdate(bundle)
+      if (state.status === 'position-update') {
+        positionUpdate(bundle)
       }
     })
     yield handleVerticalScroll(div, delta => {
