@@ -19,6 +19,9 @@ export const handleVerticalScroll = (
     onVerticalDragStop: () => {
       drag = false
     },
+    onWheel: event => {
+      delta = -event.deltaY
+    },
   })
   const listenerFrame = handleFrame(() => {
     if (drag === false) {

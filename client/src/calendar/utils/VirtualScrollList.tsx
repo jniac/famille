@@ -9,23 +9,36 @@ const defaultProps = {
   startOuterMargin: 400,
   endInnerMargin: 200,
   endOuterMargin: 400,
+  initialIndex: 0,
 }
 
 type Props = {
   renderItem: (index: number) => ReactElement
 } & Partial<typeof defaultProps>
 
-const propsWithDefault = (props: Props) => ({ ...defaultProps, ...props})
+const propsWithDefault = (props: Props): Required<Props> => ({ ...defaultProps, ...props})
 
 type State = {
-  status: 'init' | 'init-done' | 'position-update' | 'prepend'
+  status: 'init-loop' | 'init-done' | 'position-update' | 'prepend'
   startPositionOffset: number
   startIndexOffset: number
+  initPrefillCount: number
   viewHeight: number
   nodes: ReactElement[]
   children: HTMLElement[]
   position: ObservableNumber
 }
+
+const createState = ({ initialIndex }: Required<Props>): State => ({
+  status: 'init-loop',
+  startIndexOffset: initialIndex,
+  startPositionOffset: 0,
+  initPrefillCount: 0,
+  viewHeight: 0,
+  children: [],
+  nodes: [],
+  position: new ObservableNumber(0),
+})
 
 type Bundle = {
   props: Props
@@ -33,17 +46,7 @@ type Bundle = {
   updateState: (partialState: Partial<State>) => void
 }
 
-const createState = (): State => ({
-  status: 'init',
-  startPositionOffset: 0,
-  startIndexOffset: 0,
-  viewHeight: 0,
-  children: [],
-  nodes: [],
-  position: new ObservableNumber(0),
-})
-
-const init = ({ props, state, updateState }: Bundle) => {
+const loopInit = ({ props, state, updateState }: Bundle) => {
   const {
     startInnerMargin,
     endInnerMargin,
@@ -51,6 +54,7 @@ const init = ({ props, state, updateState }: Bundle) => {
   } = propsWithDefault(props)
   const {
     startIndexOffset,
+    initPrefillCount,
     viewHeight,
     children,
     nodes,
@@ -60,7 +64,7 @@ const init = ({ props, state, updateState }: Bundle) => {
 
   // Step #1: Fill with inner items & "end-outer" items
   if (height < viewHeight + endInnerMargin) {
-    const index = nodes.length
+    const index = startIndexOffset + nodes.length
     const node = renderItem(index)
     updateState({
       nodes: [...nodes, node],
@@ -70,12 +74,13 @@ const init = ({ props, state, updateState }: Bundle) => {
   else {
 
     // Step #2: Post-fill with "start-outer" items
-    const startHeight = children.slice(0, -startIndexOffset).reduce((h, e) => h + e.offsetHeight, 0)
+    const startHeight = children.slice(0, initPrefillCount).reduce((h, e) => h + e.offsetHeight, 0)
     if (startHeight < startInnerMargin) {
       const startIndex = startIndexOffset - 1
       const node = renderItem(startIndex)
-      updateState({ 
-        nodes: [node, ...nodes], 
+      updateState({
+        initPrefillCount: initPrefillCount + 1,
+        nodes: [node, ...nodes],
         startIndexOffset: startIndex,
       })
     } 
@@ -149,12 +154,26 @@ const positionUpdate = ({ props, state, updateState }: Bundle) => {
   // Step #2: Reduce the list if necessary.
   const shouldReduce = startIndex !== 0 || endIndex !== children.length
   if (shouldReduce) {
-    const newNodes = nodes.slice(startIndex, endIndex)
-    updateState({ 
-      nodes: newNodes, 
-      startIndexOffset: startIndexOffset + startIndex,
-      startPositionOffset: newStartPositionOffset,
-    })
+    if (startIndex < endIndex) {
+      const newNodes = nodes.slice(startIndex, endIndex)
+      updateState({ 
+        nodes: newNodes, 
+        startIndexOffset: startIndexOffset + startIndex,
+        startPositionOffset: newStartPositionOffset,
+      })
+    } else {
+      // Note: It's very important not to clear totally the array, since after 
+      // that the scroll could not work anymore.
+      // Another solution could be the ability to fillup from an empty array, 
+      // like during the initialisation, but with a specific index offset.
+      const index = Math.min(startIndex, nodes.length - 1)
+      const newNodes = [nodes[index]]
+      updateState({ 
+        nodes: newNodes, 
+        startIndexOffset: startIndexOffset + index,
+        startPositionOffset: position.value,
+      })
+    }
     return // Stop here.
   }
 
@@ -199,7 +218,7 @@ export const VirtualScrollList = (props: Props) => {
 
   // Ref & bundle.
   const ref = useRef<HTMLDivElement>(null)
-  const state = useMemo<State>(createState, [])
+  const state = useMemo<State>(() => createState(propsWithDefault(props)), [])
   const forceUpdate = useForceUpdate({ waitNextFrame: false })
   const updateState = (partialState: Partial<State>) => {
     Object.assign(state, partialState)
@@ -214,8 +233,8 @@ export const VirtualScrollList = (props: Props) => {
     state.viewHeight = div.offsetHeight
 
     switch (state.status) {
-      case 'init': {
-        init(bundle)
+      case 'init-loop': {
+        loopInit(bundle)
         break
       }
       case 'init-done': {
