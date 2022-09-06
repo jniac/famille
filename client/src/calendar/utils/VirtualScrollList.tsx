@@ -16,7 +16,7 @@ type Props = {
   renderItem: (index: number) => ReactElement
 } & Partial<typeof defaultProps>
 
-const propsWithDefault = (props: Props): Required<Props> => ({ ...defaultProps, ...props})
+const propsWithDefault = (props: Props): Required<Props> => ({ ...defaultProps, ...props })
 
 type State = {
   status: 'init-loop' | 'init-done' | 'position-update' | 'prepend'
@@ -69,8 +69,8 @@ const loopInit = ({ props, state, updateState }: Bundle) => {
     updateState({
       nodes: [...nodes, node],
     })
-  } 
-  
+  }
+
   else {
 
     // Step #2: Post-fill with "start-outer" items
@@ -83,8 +83,8 @@ const loopInit = ({ props, state, updateState }: Bundle) => {
         nodes: [node, ...nodes],
         startIndexOffset: startIndex,
       })
-    } 
-    
+    }
+
     // End of init.
     else {
       updateState({
@@ -156,8 +156,8 @@ const positionUpdate = ({ props, state, updateState }: Bundle) => {
   if (shouldReduce) {
     if (startIndex < endIndex) {
       const newNodes = nodes.slice(startIndex, endIndex)
-      updateState({ 
-        nodes: newNodes, 
+      updateState({
+        nodes: newNodes,
         startIndexOffset: startIndexOffset + startIndex,
         startPositionOffset: newStartPositionOffset,
       })
@@ -168,8 +168,8 @@ const positionUpdate = ({ props, state, updateState }: Bundle) => {
       // like during the initialisation, but with a specific index offset.
       const index = Math.min(startIndex, nodes.length - 1)
       const newNodes = [nodes[index]]
-      updateState({ 
-        nodes: newNodes, 
+      updateState({
+        nodes: newNodes,
         startIndexOffset: startIndexOffset + index,
         startPositionOffset: position.value,
       })
@@ -218,7 +218,10 @@ export const VirtualScrollList = (props: Props) => {
 
   // Ref & bundle.
   const ref = useRef<HTMLDivElement>(null)
-  const state = useMemo<State>(() => createState(propsWithDefault(props)), [])
+  const state = useMemo<State>(() =>
+    createState(propsWithDefault(props)), 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  [])
   const forceUpdate = useForceUpdate({ waitNextFrame: false })
   const updateState = (partialState: Partial<State>) => {
     Object.assign(state, partialState)
