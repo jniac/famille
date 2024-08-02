@@ -16,7 +16,8 @@ Peu de camping dans la région, à Bourganeuf même il n'y a pas de camping muni
 mais seulement [une aire de camping car](https://www.google.fr/maps/place/Aire+de+camping-car+Bourganeuf/@45.9541632,1.7575906,18.82z/data=!4m6!3m5!1s0x47f9738d1cb8f93b:0xdd0cdefb35fbc23a!8m2!3d45.9543571!4d1.7572191!16s%2Fg%2F11jv734tpq?entry=ttu)
 pas sûr qu'on puisse y planter des tentes.
 
-En adaptant le parcours on pourrait partir de [ce camping (Chignat - Les Quatres Saisons)](https://www.google.fr/maps/place/The+four+Seasons/@45.946376,1.8119375,16.58z/data=!4m9!3m8!1s0x47f973f5156d7c41:0x9d0852c5446ad4e7!5m2!4m1!1i2!8m2!3d45.9488602!4d1.81286!16s%2Fg%2F1tf47hwf?entry=ttu)...
+En adaptant le parcours on pourrait partir du [camping "Les Quatres Saisons" à Chignat](https://www.google.fr/maps/place/The+four+Seasons/@45.946376,1.8119375,16.58z/data=!4m9!3m8!1s0x47f973f5156d7c41:0x9d0852c5446ad4e7!5m2!4m1!1i2!8m2!3d45.9488602!4d1.81286!16s%2Fg%2F1tf47hwf?entry=ttu) 
+(7km de Bourganeuf)...
 mais il est "temporairement" fermé.
 
 Hors Bourganeuf, il n'y a de camping qu'au Lac de Vassivière ce qui oblige à bivouaquer 
