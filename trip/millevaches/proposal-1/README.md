@@ -6,10 +6,10 @@ proposé ce découpage :
 
 ![](data/Trip.jpg)
 
-## Note :
+## Description :
 
-Départ de Bourganeuf, 4 étapes, 3 nuits (hors départ / arrivées: bivouac - camping 
-- bivouac). Un peu moins d'une vingtaine de kilomètres par jour. Possibilité de 
+Départ de Bourganeuf, 4 étapes, 3 nuits (hors départ / arrivées: bivouac - camping - bivouac). 
+Un peu moins d'une vingtaine de kilomètres par jour. Possibilité de 
 doubler la nuit autour du Lac de Vassivière (camping).
 
 Peu de camping dans la région, à Bourganeuf même il n'y a pas de camping municipal
