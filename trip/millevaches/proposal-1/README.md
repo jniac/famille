@@ -56,3 +56,13 @@ Saint Martin Château → Bourganeuf
 - 19,0 km  
 - [komoot.com/tour/1756723134](https://www.komoot.com/tour/1756723134)
 - Aire Camping Car ???
+
+
+# Notes
+
+Nautic Vassivière
+0555647802
+4 formules 1h30, initiation voiles
+
+canoé demi journée 35€
+kayak 19€
